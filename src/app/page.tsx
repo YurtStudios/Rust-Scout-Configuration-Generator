@@ -4,7 +4,7 @@ import { Switch } from "@mui/material";
 import { useEffect, useState } from "react";
 
 export default function Home() {
-    const [testData, setTestData] = useState<[CardData]>([
+    const [localData, setLocalData] = useState<Array<CardData>>([
         {
             id: 0, 
             alertName: "Test Alert",
@@ -17,18 +17,33 @@ export default function Home() {
             checkButton: false,
         }
     ]);
-  return (<div className="h-9/12 flex flex-col dark:border-white border-black ">
-    <h2 className="text-3xl font-semibold shrink-0 pb-4">Rust Scout Configuration</h2>
-    <p className="inline-block py-1">Custom Alerts: <button className="border p-1 rounded-md">Add new</button></p>
-    <div className="w-[600px] border-2 rounded-md grow p-2 pt-4">
-        {testData.map((cardData, index) => {
-                return <Card cardIndex={index + 1} 
-                    cardData={cardData}
-                key={index}>
-                </Card>
-        })}
-    </div>
-  </div>);
+
+    function addNewAlert() {
+        let newId = localData[localData.length - 1].id + 1;
+        setLocalData([...localData, {
+            id: newId,
+            alertName: "",
+            triggerEvent: TriggerEvent.RecentKd,
+            triggerCount: 0,
+            triggerLogicOperator: LogicOperator.LessThan,
+            title: "",
+            description: "",
+            color: 0,
+            checkButton: false,
+        }])
+    }
+    return (<div className="h-9/12 flex flex-col dark:border-white border-black ">
+        <h2 className="text-3xl font-semibold shrink-0 pb-4">Rust Scout Configuration</h2>
+        <p className="inline-block py-1">Custom Alerts: <button className="border p-1 rounded-md" onClick={addNewAlert}>Add new</button></p>
+        <div className="w-[600px] border-2 rounded-md grow p-2 pt-4">
+            {localData.map((cardData, index) => {
+                    return <Card cardIndex={index + 1} 
+                        cardData={cardData}
+                    key={index}>
+                    </Card>
+            })}
+        </div>
+    </div>);
 }
 
 enum TriggerEvent {
@@ -179,7 +194,5 @@ export function Card(props: CardProps) {
                 }
             />
         </div>
-        
-
     </form>;
 }
