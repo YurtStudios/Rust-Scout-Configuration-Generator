@@ -25,9 +25,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-neutral-900 dark:text-white flex flex-col h-screen`}
       >
-        {children}
+        <h1 className="w-full p-4 text-3xl font-semibold sticky top-0 bg-gray-700 dark:bg-neutral-950 text-white shrink-0">
+            Rust Scout Bot
+        </h1>
+        <div className="w-full grow flex justify-center">
+            {children}
+        </div>
       </body>
     </html>
   );
