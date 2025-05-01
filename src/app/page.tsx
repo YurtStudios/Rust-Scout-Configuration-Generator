@@ -33,6 +33,17 @@ export default function Home() {
         }])
     }
 
+    function cardDeleteHandler(deletedCardId: number) {
+        setLocalData(localData.filter(cardData => cardData.id == deletedCardId));
+    }
+    function cardSaveHandler(savedCard: CardData) {
+        let tempCards = localData;
+        let savedCardIndex = localData.findIndex(card => card.id == savedCard.id);
+        tempCards[savedCardIndex] = savedCard;
+        setLocalData(tempCards);
+
+    }
+
     return (<div className="h-9/12 flex flex-col dark:border-white border-black ">
         <h2 className="text-3xl font-semibold shrink-0 pb-4">Rust Scout Configuration</h2>
         <p className="inline-block py-1">Custom Alerts: <button className="border p-1 rounded-md" onClick={addNewAlert}>Add new</button></p>
@@ -40,6 +51,8 @@ export default function Home() {
             {localData.map((cardData, index) => {
                 return <Fragment key={index}>
                     <Card cardIndex={index + 1} 
+                        onSave={cardSaveHandler}
+                        onDelete={cardDeleteHandler}
                         cardData={cardData}
                         key={index}/>
                     {index !== localData.length - 1 && <div className="w-full border-t border-4 my-4 rounded-md"></div>}
@@ -68,6 +81,8 @@ enum LogicOperator {
     LessThanOrEqual = "less-than-or-equal"
 }
 type CardProps = {
+    onDelete: (id: number) => void,
+    onSave: (cardData: CardData) => void,
     cardData: CardData,
     cardIndex: number,
 }
@@ -85,9 +100,11 @@ type CardData = {
 
 export function Card(props: CardProps) {
     const [localCardData, setLocalCardData] = useState<CardData>(props.cardData);
+    const [localDataChanged, setLocalDataChanged] = useState<boolean>(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
+        if(!localDataChanged) setLocalDataChanged(true);
 
         setLocalCardData((prev) => ({
           ...prev,
@@ -102,9 +119,32 @@ export function Card(props: CardProps) {
     const sharedInputClasses = "w-full border rounded-md p-1 px-3";
     const logicOperators = Object.entries(LogicOperator);
     const triggerEvents = Object.entries(TriggerEvent);
-    return <form className="flex flex-col gap-1">
-        <h3 className="inline-block font-bold">
-            Alert #{props.cardIndex}: <button className="border rounded-md p-1">Trash</button>
+    return <div className="flex flex-col gap-1">
+        <h3 className="flex flex-row gap-2 items-center font-bold text-lg">
+            Alert #{props.cardIndex}:&nbsp;
+            <button 
+                className="border rounded-md p-1" 
+                onClick={() => props.onDelete(props.cardData.id)}>
+                Trash
+            </button>
+            <button
+                className={ localDataChanged ? "border rounded-md p-1" : " hidden"} 
+                onClick={() => {
+                    props.onSave(localCardData);
+                    setLocalDataChanged(false);
+                }}>
+                Save
+            </button>
+            <button
+                className={ localDataChanged ? "border rounded-md p-1" : " hidden"} 
+                onClick={() => { 
+                    console.log(props.cardData);
+                    setLocalCardData(props.cardData); 
+                    setLocalDataChanged(false);
+                }}
+                >
+                Cancel
+            </button>
         </h3>
         <label>Alert Name:</label>
         <input 
@@ -123,12 +163,12 @@ export function Card(props: CardProps) {
                     triggerEvent: TriggerEvent[event.target.value as keyof typeof TriggerEvent]
                 })
             }}
+            value={props.cardData.triggerEvent}
         >
             { triggerEvents.map(([triggerEvent, triggerEventValue], index) => {
                 return <option 
                     key={index}
                     value={triggerEventValue} 
-                    selected={triggerEvent == localCardData.triggerEvent} 
                     className="dark:bg-neutral-800 ">
                     {triggerEvent.toString()}
                 </option>
@@ -156,12 +196,12 @@ export function Card(props: CardProps) {
                             triggerLogicOperator: LogicOperator[event.target.value as keyof typeof LogicOperator]
                         })
                     }}
+                    value={localCardData.triggerLogicOperator}
                 >
                     { logicOperators.map(([logicOperator, logicOperatorValue], index) => {
                         return <option 
                             key={index}
                             value={logicOperatorValue} 
-                            selected={logicOperator == localCardData.triggerLogicOperator} 
                             className="dark:bg-neutral-800 ">
                             {logicOperator.toString()}
                         </option>
@@ -174,17 +214,26 @@ export function Card(props: CardProps) {
         </h3>
         <label>Title:</label>
         <input 
+            name="title"
+            onChange={handleChange}
+            value={localCardData.title}
             className={sharedInputClasses} 
             placeholder="Title of alert..."
         />
         <label>Description:</label>
         <input 
+            name="description"
+            onChange={handleChange}
+            value={localCardData.description}
             className={sharedInputClasses}
             placeholder="Description of alert..."
         />
         <label>Color:</label>
         <input 
+            name="color"
             type="number"
+            onChange={handleChange}
+            value={localCardData.color}
             className={sharedInputClasses}
             placeholder="Description of alert..."
         />
@@ -197,5 +246,5 @@ export function Card(props: CardProps) {
                 }
             />
         </div>
-    </form>;
+    </div>;
 }
