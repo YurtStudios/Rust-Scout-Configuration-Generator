@@ -3,23 +3,25 @@
 import { Switch } from "@mui/material";
 import { Fragment, useEffect, useState } from "react";
 
+const localStorageIdentifier = "localCardsData";
+
+
+//TODO: Undo Functionality
+// Just save localData states somewhere, go backwards/forwards when needed
+
 export default function Home() {
-    const [localData, setLocalData] = useState<Array<CardData>>([
-        {
-            id: 0, 
-            alertName: "Test Alert",
-            triggerEvent: TriggerEvent.RecentKills,
-            triggerCount: 2,
-            triggerLogicOperator: LogicOperator.GreaterThan,
-            title: "Test Title",
-            description: "Example Description",
-            color: 532,
-            checkButton: false,
-        }
-    ]);
+    const [localData, setLocalData] = useState<Array<CardData>>([]);
+
+    useEffect(() => {
+        let storedData = localStorage.getItem(localStorageIdentifier);
+        if (storedData)
+            setLocalData(JSON.parse(storedData))
+        else
+            setLocalData([])
+    }, [])
 
     function addNewAlert() {
-        let newId = localData[localData.length - 1].id + 1;
+        let newId = localData.length == 0 ? 1 : localData[localData.length - 1].id + 1;
         setLocalData([...localData, {
             id: newId,
             alertName: "",
@@ -33,15 +35,21 @@ export default function Home() {
         }])
     }
 
+    function saveLocalData() {
+        localStorage.setItem(localStorageIdentifier, JSON.stringify(localData));
+    }
+
     function cardDeleteHandler(deletedCardId: number) {
         setLocalData(localData.filter(cardData => cardData.id == deletedCardId));
+        saveLocalData();
     }
+
     function cardSaveHandler(savedCard: CardData) {
         let tempCards = localData;
         let savedCardIndex = localData.findIndex(card => card.id == savedCard.id);
         tempCards[savedCardIndex] = savedCard;
         setLocalData(tempCards);
-
+        saveLocalData();
     }
 
     return (<div className="h-9/12 flex flex-col dark:border-white border-black ">
