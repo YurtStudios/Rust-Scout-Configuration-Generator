@@ -1,16 +1,51 @@
 "use client";
 
-import { Switch } from "@mui/material";
+import { createTheme, Switch, ThemeProvider, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { Fragment, useEffect, useState } from "react";
 
-const localStorageIdentifier = "localCardsData";
+const localStorageIdentifier = "localAlertsData";
 
 
 //TODO: Undo Functionality
 // Just save localData states somewhere, go backwards/forwards when needed
-
+//
+type DisplaySelection = "alerts" | "watchlist" | "rgb-found"
 export default function Home() {
-    const [localData, setLocalData] = useState<Array<CardData>>([]);
+    const [display, setDisplay] = useState("alerts");
+
+    return <ThemeProvider theme={theme}>
+        <div className="h-9/12 flex flex-col dark:border-white border-black ">
+            <h2 className="text-3xl font-semibold shrink-0 pb-4 ">Rust Scout Configuration 
+            </h2>
+            <div className="w-full flex items-center justify-center dark:text-white dark:border-white mb-4">
+            <ToggleButtonGroup 
+                    color="primary"
+                exclusive
+                value={display}
+                onChange={(event,newAlignment) => {
+                        setDisplay(newAlignment)
+                    }}>
+
+                <ToggleButton value="alerts">Alerts</ToggleButton>
+                <ToggleButton value="watchlist">Watchlist</ToggleButton>
+                <ToggleButton value="rgb-found">RGB Found</ToggleButton>
+            </ToggleButtonGroup>
+            </div>
+            <div className={display == "alerts" ? "" : "hidden" }>
+                <AlertsDisplay />
+            </div>
+        </div>
+    </ThemeProvider>
+}
+
+const theme = createTheme({
+  colorSchemes: {
+    dark: true,
+  },
+});
+
+function AlertsDisplay() {
+    const [localData, setLocalData] = useState<Array<AlertData>>([]);
 
     useEffect(() => {
         let storedData = localStorage.getItem(localStorageIdentifier);
@@ -19,6 +54,10 @@ export default function Home() {
         else
             setLocalData([])
     }, [])
+
+    useEffect(() => {
+        localStorage.setItem(localStorageIdentifier, JSON.stringify(localData));
+    }, [localData])
 
     function addNewAlert() {
         let newId = localData.length == 0 ? 1 : (localData[localData.length - 1].id + 1);
@@ -32,42 +71,38 @@ export default function Home() {
             description: "",
             color: 0,
             checkButton: false,
+            url: ""
         }])
     }
 
-    function saveLocalData() {
-        localStorage.setItem(localStorageIdentifier, JSON.stringify(localData));
-    }
 
     function cardDeleteHandler(deletedCardId: number) {
         setLocalData(localData.filter(cardData => cardData.id != deletedCardId));
-        saveLocalData();
     }
 
-    function cardSaveHandler(savedCard: CardData) {
+    function cardSaveHandler(savedCard: AlertData) {
         let tempCards = localData;
         let savedCardIndex = localData.findIndex(card => card.id == savedCard.id);
         tempCards[savedCardIndex] = savedCard;
         setLocalData(tempCards);
-        saveLocalData();
     }
 
-    return (<div className="h-9/12 flex flex-col dark:border-white border-black ">
-        <h2 className="text-3xl font-semibold shrink-0 pb-4">Rust Scout Configuration</h2>
+    return (
+    <Fragment>
         <p className="inline-block py-1">Custom Alerts: <button className="border p-1 rounded-md" onClick={addNewAlert}>Add new</button></p>
-        <div className="w-[600px] border-2 rounded-md grow p-2 pt-4">
+        <div className="w-[600px] border-2 rounded-md grow p-2 pt-4 mb-4">
             {localData.map((cardData, index) => {
                 return <Fragment key={index}>
-                    <Card cardIndex={index + 1} 
+                    <AlertCard cardIndex={index + 1} 
                         onSave={cardSaveHandler}
                         onDelete={cardDeleteHandler}
-                        cardData={cardData}
+                        alertData={cardData}
                         key={index}/>
                     {index !== localData.length - 1 && <div className="w-full border-t border-4 my-4 rounded-md"></div>}
                 </Fragment>
             })}
         </div>
-    </div>);
+    </Fragment>);
 }
 
 enum TriggerEvent {
@@ -88,13 +123,13 @@ enum LogicOperator {
     GreaterThanOrEqual = "greater-than-or-equal", 
     LessThanOrEqual = "less-than-or-equal"
 }
-type CardProps = {
+type AlertCardProps = {
     onDelete: (id: number) => void,
-    onSave: (cardData: CardData) => void,
-    cardData: CardData,
+    onSave: (cardData: AlertData) => void,
+    alertData: AlertData,
     cardIndex: number,
 }
-type CardData = {
+type AlertData = {
     id: number,
     alertName: string,
     triggerEvent: TriggerEvent,
@@ -104,10 +139,11 @@ type CardData = {
     description: string,
     color: number,
     checkButton: boolean,
+    url: string,
 }
 
-export function Card(props: CardProps) {
-    const [localCardData, setLocalCardData] = useState<CardData>(props.cardData);
+export function AlertCard(props: AlertCardProps) {
+    const [localCardData, setLocalCardData] = useState<AlertData>(props.alertData);
     const [localDataChanged, setLocalDataChanged] = useState<boolean>(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,8 +157,8 @@ export function Card(props: CardProps) {
     };
 
     useEffect(() => {
-        setLocalCardData(props.cardData);
-    }, [props.cardData])
+        setLocalCardData(props.alertData);
+    }, [props.alertData])
 
     const sharedInputClasses = "w-full border rounded-md p-1 px-3";
     const logicOperators = Object.entries(LogicOperator);
@@ -133,7 +169,7 @@ export function Card(props: CardProps) {
             <button 
                 className="border rounded-md p-1" 
                 onClick={() => {
-                    props.onDelete(props.cardData.id)
+                    props.onDelete(props.alertData.id)
                 }}>
                 Trash
             </button>
@@ -148,7 +184,7 @@ export function Card(props: CardProps) {
             <button
                 className={ localDataChanged ? "border rounded-md p-1" : " hidden"} 
                 onClick={() => { 
-                    setLocalCardData(props.cardData); 
+                    setLocalCardData(props.alertData); 
                     setLocalDataChanged(false);
                 }}
                 >
@@ -171,7 +207,7 @@ export function Card(props: CardProps) {
                     triggerEvent: TriggerEvent[event.target.value as keyof typeof TriggerEvent]
                 })
             }}
-            value={props.cardData.triggerEvent}
+            value={props.alertData.triggerEvent}
         >
             { triggerEvents.map(([triggerEvent, triggerEventValue], index) => {
                 return <option 
@@ -243,6 +279,14 @@ export function Card(props: CardProps) {
             value={localCardData.color}
             className={sharedInputClasses}
             placeholder="Description of alert..."
+        />
+        <label>URL:</label>
+        <input
+            name="url"
+            onChange={handleChange}
+            value={localCardData.url}
+            className={sharedInputClasses}
+            placeholder="http://example.com"
         />
         <div className="flex flex-wrap gap-2 items-center">
             <label>Include a 'Check' button?</label>
