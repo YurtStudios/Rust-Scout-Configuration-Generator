@@ -2,6 +2,7 @@
 
 import { createTheme, Switch, ThemeProvider, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { Fragment, useEffect, useState } from "react";
+import { WatchlistDisplay } from "./watchlists";
 
 const localStorageIdentifier = "localAlertsData";
 
@@ -33,6 +34,9 @@ export default function Home() {
             </div>
             <div className={display == "alerts" ? "" : "hidden" }>
                 <AlertsDisplay />
+            </div>
+            <div className={display == "watchlist" ? "" : "hidden"}>
+                <WatchlistDisplay />
             </div>
         </div>
     </ThemeProvider>
@@ -298,4 +302,12 @@ export function AlertCard(props: AlertCardProps) {
             />
         </div>
     </div>;
+}
+
+
+type TriggerListProps = {
+
+}
+function TriggerList(props: TriggerListProps) {
+
 }
