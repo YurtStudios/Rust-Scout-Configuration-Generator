@@ -1,7 +1,7 @@
 "use client";
 
 import { Switch } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 export default function Home() {
     const [localData, setLocalData] = useState<Array<CardData>>([
@@ -32,15 +32,18 @@ export default function Home() {
             checkButton: false,
         }])
     }
+
     return (<div className="h-9/12 flex flex-col dark:border-white border-black ">
         <h2 className="text-3xl font-semibold shrink-0 pb-4">Rust Scout Configuration</h2>
         <p className="inline-block py-1">Custom Alerts: <button className="border p-1 rounded-md" onClick={addNewAlert}>Add new</button></p>
         <div className="w-[600px] border-2 rounded-md grow p-2 pt-4">
             {localData.map((cardData, index) => {
-                    return <Card cardIndex={index + 1} 
+                return <Fragment key={index}>
+                    <Card cardIndex={index + 1} 
                         cardData={cardData}
-                    key={index}>
-                    </Card>
+                        key={index}/>
+                    {index !== localData.length - 1 && <div className="w-full border-t border-4 my-4 rounded-md"></div>}
+                </Fragment>
             })}
         </div>
     </div>);
