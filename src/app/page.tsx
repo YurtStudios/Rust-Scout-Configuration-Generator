@@ -21,7 +21,7 @@ export default function Home() {
     }, [])
 
     function addNewAlert() {
-        let newId = localData.length == 0 ? 1 : localData[localData.length - 1].id + 1;
+        let newId = localData.length == 0 ? 1 : (localData[localData.length - 1].id + 1);
         setLocalData([...localData, {
             id: newId,
             alertName: "",
@@ -40,7 +40,7 @@ export default function Home() {
     }
 
     function cardDeleteHandler(deletedCardId: number) {
-        setLocalData(localData.filter(cardData => cardData.id == deletedCardId));
+        setLocalData(localData.filter(cardData => cardData.id != deletedCardId));
         saveLocalData();
     }
 
@@ -132,7 +132,9 @@ export function Card(props: CardProps) {
             Alert #{props.cardIndex}:&nbsp;
             <button 
                 className="border rounded-md p-1" 
-                onClick={() => props.onDelete(props.cardData.id)}>
+                onClick={() => {
+                    props.onDelete(props.cardData.id)
+                }}>
                 Trash
             </button>
             <button
@@ -146,7 +148,6 @@ export function Card(props: CardProps) {
             <button
                 className={ localDataChanged ? "border rounded-md p-1" : " hidden"} 
                 onClick={() => { 
-                    console.log(props.cardData);
                     setLocalCardData(props.cardData); 
                     setLocalDataChanged(false);
                 }}
@@ -165,7 +166,6 @@ export function Card(props: CardProps) {
         <label>Trigger Event:</label>
         <select className={sharedInputClasses}
             onChange={(event) => {
-                console.log(event.target.value);
                 setLocalCardData({
                     ...localCardData, 
                     triggerEvent: TriggerEvent[event.target.value as keyof typeof TriggerEvent]
@@ -198,7 +198,6 @@ export function Card(props: CardProps) {
                 <label>Trigger Logic Operator</label>
                 <select className={sharedInputClasses}
                     onChange={(event) => {
-                        console.log(event.target.value);
                         setLocalCardData({
                             ...localCardData, 
                             triggerLogicOperator: LogicOperator[event.target.value as keyof typeof LogicOperator]
