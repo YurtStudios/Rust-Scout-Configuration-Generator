@@ -10,6 +10,7 @@ const localStorageIdentifier = "localAlertsData";
 //TODO: Undo Functionality
 // Just save localData states somewhere, go backwards/forwards when needed
 //
+const sharedInputClasses = "w-full border rounded-md p-1 px-3";
 type DisplaySelection = "alerts" | "watchlist" | "rgb-found"
 export default function Home() {
     const [display, setDisplay] = useState("alerts");
@@ -59,7 +60,12 @@ function AlertsDisplay() {
             setLocalData([])
     }, [])
 
+
+    function saveData(alertData: Array<AlertData>) {
+        localStorage.setItem(localStorageIdentifier, JSON.stringify(localData));
+    }
     useEffect(() => {
+        console.log(JSON.stringify(localData));
         localStorage.setItem(localStorageIdentifier, JSON.stringify(localData));
     }, [localData])
 
@@ -68,9 +74,7 @@ function AlertsDisplay() {
         setLocalData([...localData, {
             id: newId,
             alertName: "",
-            triggerEvent: TriggerEvent.RecentKd,
-            triggerCount: 0,
-            triggerLogicOperator: LogicOperator.LessThan,
+            triggers: [],
             title: "",
             description: "",
             color: 0,
@@ -88,6 +92,8 @@ function AlertsDisplay() {
         let tempCards = localData;
         let savedCardIndex = localData.findIndex(card => card.id == savedCard.id);
         tempCards[savedCardIndex] = savedCard;
+        console.log(savedCard, tempCards)
+        saveData(tempCards);
         setLocalData(tempCards);
     }
 
@@ -136,9 +142,7 @@ type AlertCardProps = {
 type AlertData = {
     id: number,
     alertName: string,
-    triggerEvent: TriggerEvent,
-    triggerCount: number,
-    triggerLogicOperator: LogicOperator,
+    triggers: Array<Trigger>
     title: string,
     description: string,
     color: number,
@@ -164,9 +168,6 @@ export function AlertCard(props: AlertCardProps) {
         setLocalCardData(props.alertData);
     }, [props.alertData])
 
-    const sharedInputClasses = "w-full border rounded-md p-1 px-3";
-    const logicOperators = Object.entries(LogicOperator);
-    const triggerEvents = Object.entries(TriggerEvent);
     return <div className="flex flex-col gap-1">
         <h3 className="flex flex-row gap-2 items-center font-bold text-lg">
             Alert #{props.cardIndex}:&nbsp;
@@ -203,59 +204,16 @@ export function AlertCard(props: AlertCardProps) {
             name="alertName"
             value={localCardData.alertName}
             />
-        <label>Trigger Event:</label>
-        <select className={sharedInputClasses}
-            onChange={(event) => {
+        <TriggerList 
+            triggers={localCardData.triggers}
+            updateTriggerList={(triggers) => {
+                setLocalDataChanged(true);
                 setLocalCardData({
-                    ...localCardData, 
-                    triggerEvent: TriggerEvent[event.target.value as keyof typeof TriggerEvent]
+                    ...localCardData,
+                    triggers: triggers
                 })
             }}
-            value={props.alertData.triggerEvent}
-        >
-            { triggerEvents.map(([triggerEvent, triggerEventValue], index) => {
-                return <option 
-                    key={index}
-                    value={triggerEventValue} 
-                    className="dark:bg-neutral-800 ">
-                    {triggerEvent.toString()}
-                </option>
-            })}
-        </select>
-        <div className="w-full flex flex-row gap-4">
-            <div className="w-1/2">
-                <label className="">Trigger Count:</label>
-                <input 
-                    className={sharedInputClasses} 
-                    placeholder="How many trigger events...?"
-                    onChange={handleChange}
-                    type="number"
-                    name="triggerCount"
-                    value={localCardData.triggerCount}
-                />
-            </div>
-            <div className="w-1/2">
-                <label>Trigger Logic Operator</label>
-                <select className={sharedInputClasses}
-                    onChange={(event) => {
-                        setLocalCardData({
-                            ...localCardData, 
-                            triggerLogicOperator: LogicOperator[event.target.value as keyof typeof LogicOperator]
-                        })
-                    }}
-                    value={localCardData.triggerLogicOperator}
-                >
-                    { logicOperators.map(([logicOperator, logicOperatorValue], index) => {
-                        return <option 
-                            key={index}
-                            value={logicOperatorValue} 
-                            className="dark:bg-neutral-800 ">
-                            {logicOperator.toString()}
-                        </option>
-                    })}
-                </select>
-            </div>
-        </div>
+        />
         <h3 className="inline-block font-bold">
             Embed Information:
         </h3>
@@ -304,10 +262,97 @@ export function AlertCard(props: AlertCardProps) {
     </div>;
 }
 
+type Trigger = {
+    triggerEvent: TriggerEvent,
+    triggerCount: number,
+    triggerLogicOperator: LogicOperator
+}
 
 type TriggerListProps = {
-
+    triggers: Array<Trigger>
+    updateTriggerList: (triggers: Array<Trigger>) => void,
 }
+const logicOperators = Object.entries(LogicOperator);
+const triggerEvents = Object.entries(TriggerEvent);
 function TriggerList(props: TriggerListProps) {
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+        const { name, value, type } = e.target;
+
+        let triggersCopy = props.triggers;
+        (triggersCopy[index] as any)[name] = type === "number" ? Number(value) : value;
+        
+        props.updateTriggerList(triggersCopy);
+    };
+
+    return <div className="border m-2 rounded-md p-2 flex flex-col gap-2">
+        <h3 className="font-semibold flex gap-2 items-center">
+            Trigger List
+            <button 
+                className="border rounded-md p-1"
+                onClick={() => props.updateTriggerList([...props.triggers, { triggerLogicOperator: LogicOperator.LessThan, triggerCount: 0, triggerEvent: TriggerEvent.RecentKills}])}
+            >
+                Add Trigger
+            </button>
+        </h3>
+        {
+            props.triggers.map((trigger, index) => {
+                return <Fragment key={index}>
+                    <div className="w-full flex flex-row gap-2">
+                        <button className="border rounded-md p-2">Trash</button>
+                        <select className={sharedInputClasses}
+                            onChange={(event) => {
+                                let triggersCopy = props.triggers;
+                                triggersCopy[index].triggerEvent = TriggerEvent[event.target.value as keyof typeof TriggerEvent]
+                                props.updateTriggerList(triggersCopy)
+                            }}
+                            value={trigger.triggerEvent}
+                        >
+                            { triggerEvents.map(([triggerEvent, triggerEventValue], index) => {
+                                return <option 
+                                    key={index}
+                                    value={triggerEventValue} 
+                                    className="dark:bg-neutral-800 ">
+                                    {triggerEvent.toString()}
+                                </option>
+                            })}
+                        </select>
+                    </div>
+                    <div className="w-full flex flex-row gap-4">
+                        <div className="w-1/2">
+                            <label className="">Trigger Count:</label>
+                            <input 
+                                className={sharedInputClasses} 
+                                placeholder="How many trigger events...?"
+                                onChange={(e) => { handleChange(e, index)}}
+                                type="number"
+                                name="triggerCount"
+                                value={trigger.triggerCount}
+                            />
+                        </div>
+                        <div className="w-1/2">
+                            <label>Trigger Logic Operator</label>
+                            <select className={sharedInputClasses}
+                                onChange={(event) => {
+                                    let triggersCopy = props.triggers;
+                                    triggersCopy[index].triggerLogicOperator = LogicOperator[event.target.value as keyof typeof LogicOperator];
+                                    props.updateTriggerList(triggersCopy);
+                                }}
+                                value={trigger.triggerLogicOperator}
+                            >
+                                { logicOperators.map(([logicOperator, logicOperatorValue], index) => {
+                                    return <option 
+                                        key={index}
+                                        value={logicOperatorValue} 
+                                        className="dark:bg-neutral-800 ">
+                                        {logicOperator.toString()}
+                                    </option>
+                                })}
+                            </select>
+                        </div>
+                    </div>
+                </Fragment>
+            })
+        }
+    </div>
 }
