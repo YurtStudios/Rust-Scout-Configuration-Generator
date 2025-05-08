@@ -1,6 +1,6 @@
 "use client";
 import { Switch } from "@mui/material"
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 export type RgbData = {
     enabled: boolean,
@@ -28,6 +28,14 @@ export function RgbDisplay(props: {
         rgbShowMore: true,
         rgbIgnore: true,
     });
+
+    useEffect(() => {
+        let jsonStr = localStorage.getItem((localStorageIdentifier))
+        if (jsonStr) {
+            setLocalRgbData(JSON.parse(jsonStr))
+        }
+        
+    }, [])
     const [localDataChanged, setLocalDataChanged] = useState(false);
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
