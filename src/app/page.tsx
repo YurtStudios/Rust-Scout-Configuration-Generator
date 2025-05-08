@@ -1,8 +1,10 @@
 "use client";
 
-import { createTheme, Switch, ThemeProvider, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { Fragment, useEffect, useState } from "react";
-import { WatchlistDisplay } from "./watchlists";
+import { Button, createTheme, Switch, ThemeProvider, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { ActionDispatch, Fragment, useEffect, useReducer, useState } from "react";
+import { WatchlistDisplay, WatchlistData } from "./watchlists";
+import { generateOutput, LogicOperator, TriggerEvent } from "./generate-json";
+import { RgbData, RgbDisplay } from "./rgb-found";
 
 const localStorageIdentifier = "localAlertsData";
 
@@ -12,12 +14,91 @@ const localStorageIdentifier = "localAlertsData";
 //
 const sharedInputClasses = "w-full border rounded-md p-1 px-3";
 type DisplaySelection = "alerts" | "watchlist" | "rgb-found"
+
+
+type AlertStateTask = {
+    type: "add"
+} | {
+    type: "delete",
+    id: number 
+} | {
+    type: "edit",
+    alertData: AlertData
+} | {
+    type: "set",
+    alertsData: Array<AlertData>
+}
+
+function alertStateReducer(alertsState: Array<AlertData>, action: AlertStateTask) {
+    let newAlertsState: Array<AlertData>;
+    switch (action.type) {
+        case "add": {
+            let newId = alertsState.length == 0 ? 1 : (alertsState[alertsState.length - 1].id + 1);
+            newAlertsState = [...alertsState, {
+                id: newId,
+                alertName: "",
+                triggers: [],
+                title: "",
+                description: "",
+                color: 0,
+                checkButton: false,
+                url: ""
+            }]
+
+        } break;
+        case "delete": {
+            newAlertsState = alertsState.filter(alertData => alertData.id != action.id)
+        } break;
+        case "edit": {
+            newAlertsState = alertsState;
+            let alertIndex = alertsState.findIndex(alert => alert.id == action.alertData.id);
+            newAlertsState[alertIndex] = action.alertData;
+        } break;
+        case "set": {
+            newAlertsState = action.alertsData;
+        }
+    }
+
+    return newAlertsState;
+}
+
 export default function Home() {
     const [display, setDisplay] = useState("alerts");
 
+    const [watchlist, setWatchlist] = useState<WatchlistData>();
+    const [alertsState, dispatch] = useReducer(alertStateReducer, new Array<AlertData>());
+    const [rgbState, setRgbState] = useState<RgbData>();
+    const [parsedJson, setParsedJson] = useState("");
+    const [jsonVisible, setJsonVisible] = useState(false);
+    useEffect(() => {
+        dispatch({
+            type: "set",
+            alertsData: getLocalAlertData()
+        })
+    }, [])
+
+    function getLocalAlertData(): Array<AlertData> {
+        let tempJsonStr = localStorage.getItem(localStorageIdentifier);
+        if (tempJsonStr) return JSON.parse(tempJsonStr);
+        return [];
+    }
+
+
     return <ThemeProvider theme={theme}>
         <div className="h-9/12 flex flex-col dark:border-white border-black ">
-            <h2 className="text-3xl font-semibold shrink-0 pb-4 ">Rust Scout Configuration 
+            <h2 className="text-3xl font-semibold shrink-0 pb-4 ">Rust Scout Configuration &nbsp;
+                <button 
+                    className="border rounded-md p-2 text-2xl"
+                    onClick={() => {
+                        let jsonStr = JSON.stringify(generateOutput(watchlist, alertsState, rgbState))
+                        if (jsonStr) {
+                            setJsonVisible(true);
+                            setParsedJson(jsonStr);
+                        }
+                    }}
+                >
+                    Parse JSON
+                </button>
             </h2>
             <div className="w-full flex items-center justify-center dark:text-white dark:border-white mb-4">
             <ToggleButtonGroup 
@@ -34,10 +115,32 @@ export default function Home() {
             </ToggleButtonGroup>
             </div>
             <div className={display == "alerts" ? "" : "hidden" }>
-                <AlertsDisplay />
+                <AlertsDisplay 
+                    alertsData={alertsState} 
+                    dispatch={dispatch}/>
             </div>
             <div className={display == "watchlist" ? "" : "hidden"}>
-                <WatchlistDisplay />
+                <WatchlistDisplay savedWatchlistData={watchlist} setSavedWatchlistData={setWatchlist}/>
+            </div>
+            <div className={display == "rgb-found" ? "" : "hidden"}>
+                <RgbDisplay savedRgbData={rgbState} setSavedRgbData={setRgbState}/>
+            </div>
+        </div>
+        <div className={ jsonVisible ? "absolute inset-0 flex backdrop-blur-md items-center justify-center" : "hidden"} style={{ backgroundColor: "rgba(0,0,0,0.25)"}}>
+            <div className="border rounded-md w-8/12 h-8/12 dark:bg-neutral-900">
+                <div className="flex flex-row justify-between dark:bg-neutral-800 p-2 rounded-t-md">
+                    <h2 className="text-2xl">JSON Output</h2>
+                    <div className="flex">
+                        <Button>Download</Button>
+                        <Button>Copy</Button>
+                        <Button onClick={() => {
+                            setJsonVisible(false)
+                        }}>Close</Button>
+                    </div>
+                </div>
+                <div>
+                    {parsedJson}
+                </div>
             </div>
         </div>
     </ThemeProvider>
@@ -49,97 +152,64 @@ const theme = createTheme({
   },
 });
 
-function AlertsDisplay() {
-    const [localData, setLocalData] = useState<Array<AlertData>>([]);
+type AlertsDisplayProps = {
+    alertsData: Array<AlertData>,
+    dispatch: ActionDispatch<[AlertStateTask]>
+};
 
-    useEffect(() => {
-        let storedData = localStorage.getItem(localStorageIdentifier);
-        if (storedData)
-            setLocalData(JSON.parse(storedData))
-        else
-            setLocalData([])
-    }, [])
-
+function AlertsDisplay(props: AlertsDisplayProps) {
 
     function saveData(alertData: Array<AlertData>) {
-        localStorage.setItem(localStorageIdentifier, JSON.stringify(localData));
+        localStorage.setItem(localStorageIdentifier, JSON.stringify(alertData));
     }
-    useEffect(() => {
-        console.log(JSON.stringify(localData));
-        localStorage.setItem(localStorageIdentifier, JSON.stringify(localData));
-    }, [localData])
 
     function addNewAlert() {
-        let newId = localData.length == 0 ? 1 : (localData[localData.length - 1].id + 1);
-        setLocalData([...localData, {
-            id: newId,
-            alertName: "",
-            triggers: [],
-            title: "",
-            description: "",
-            color: 0,
-            checkButton: false,
-            url: ""
-        }])
+        let newId = props.alertsData.length == 0 ? 1 : (props.alertsData[props.alertsData.length - 1].id + 1);
+        let addAction: AlertStateTask = { type: "add" };
+        props.dispatch(addAction);
     }
 
 
     function cardDeleteHandler(deletedCardId: number) {
-        setLocalData(localData.filter(cardData => cardData.id != deletedCardId));
+        props.dispatch({
+            type: "delete",
+            id: deletedCardId
+        })
     }
 
     function cardSaveHandler(savedCard: AlertData) {
-        let tempCards = localData;
-        let savedCardIndex = localData.findIndex(card => card.id == savedCard.id);
+        let tempCards = props.alertsData;
+        let savedCardIndex = props.alertsData.findIndex(card => card.id == savedCard.id);
         tempCards[savedCardIndex] = savedCard;
         console.log(savedCard, tempCards)
         saveData(tempCards);
-        setLocalData(tempCards);
     }
 
     return (
     <Fragment>
         <p className="inline-block py-1">Custom Alerts: <button className="border p-1 rounded-md" onClick={addNewAlert}>Add new</button></p>
         <div className="w-[600px] border-2 rounded-md grow p-2 pt-4 mb-4">
-            {localData.map((cardData, index) => {
-                return <Fragment key={index}>
+            {props.alertsData.map((cardData, index) => {
+                return <Fragment key={cardData.id}>
                     <AlertCard cardIndex={index + 1} 
                         onSave={cardSaveHandler}
                         onDelete={cardDeleteHandler}
                         alertData={cardData}
-                        key={index}/>
-                    {index !== localData.length - 1 && <div className="w-full border-t border-4 my-4 rounded-md"></div>}
+                        key={cardData.id}/>
+                    {index !== props.alertsData.length - 1 && <div className="w-full border-t border-4 my-4 rounded-md"></div>}
                 </Fragment>
             })}
         </div>
     </Fragment>);
 }
 
-enum TriggerEvent {
-    RecentKills = "recentKills", 
-    RecentDeaths = "recentDeaths", 
-    RecentKd = "recentKd", 
-    RecentUniqueKills = "recentUniqueKills", 
-    RecentUniqueDeaths = "recentUniqueDeaths", 
-    RecentCheatReports = "recentCheatReports", 
-    RecentAbusiveReports = "recentAbusiveReports", 
-    RecentUniqueCheatReports = "recentUniqueCheatReports", 
-    RecentUniqueAbusiveReports = "recentUniqueAbusiveReports",
-}
-
-enum LogicOperator {
-    GreaterThan = "greater-than",  
-    LessThan = "less-than", 
-    GreaterThanOrEqual = "greater-than-or-equal", 
-    LessThanOrEqual = "less-than-or-equal"
-}
 type AlertCardProps = {
     onDelete: (id: number) => void,
     onSave: (cardData: AlertData) => void,
     alertData: AlertData,
     cardIndex: number,
 }
-type AlertData = {
+export type AlertData = {
     id: number,
     alertName: string,
     triggers: Array<Trigger>
@@ -262,7 +332,7 @@ export function AlertCard(props: AlertCardProps) {
     </div>;
 }
 
-type Trigger = {
+export type Trigger = {
     triggerEvent: TriggerEvent,
     triggerCount: number,
     triggerLogicOperator: LogicOperator
