@@ -32,7 +32,9 @@ export function RgbDisplay(props: {
     useEffect(() => {
         let jsonStr = localStorage.getItem((localStorageIdentifier))
         if (jsonStr) {
-            setLocalRgbData(JSON.parse(jsonStr))
+            let tempData: RgbData = JSON.parse(jsonStr);
+            setLocalRgbData(tempData)
+            props.setSavedRgbData(tempData)
         }
         
     }, [])
@@ -51,7 +53,10 @@ export function RgbDisplay(props: {
         <div className="w-[600px] border-2 rounded-md grow p-2 pt-4 mb-4">
             <h3 className="w-full flex flex-row gap-2 text-lg font-bold items-center">
                 RGB Found: 
-                <Switch checked={localRgbData.enabled}/>
+                <Switch checked={localRgbData.enabled} onChange={(val) => {
+                    setLocalRgbData({...localRgbData, enabled: val.target.checked})
+                    setLocalDataChanged(true);
+                }}/>
                 <button
                     className={ localDataChanged ? "border rounded-md p-1" : " hidden"} 
                     onClick={() => {
@@ -82,59 +87,65 @@ export function RgbDisplay(props: {
                     Cancel
                 </button>
             </h3>
-            <label>RGB Name:</label>
-            <input 
-                className={sharedInputClasses}
-                placeholder="RGB name"
-                onChange={handleChange}
-                name="name"
-                value={localRgbData.name}
-                />
-            <h3 className="text-lg font-bold">
-                Embed Information:
-            </h3>
-            <label>Title:</label>
-            <input
-                className={sharedInputClasses}
-                placeholder="RGB title"
-                onChange={handleChange}
-                name="title"
-                value={localRgbData.title}
-                />
-            <label>Description:</label>
-            <input
-                className={sharedInputClasses}
-                placeholder="RGB description"
-                onChange={handleChange}
-                name="description"
-                value={localRgbData.description}
-                />
-            <label>Color:</label>
-            <input
-                className={sharedInputClasses}
-                placeholder="Accent color for watchlist"
-                onChange={handleChange}
-                name="color"
-                type="number"
-                value={localRgbData.color}
-                />
-            <div className="flex flex-wrap gap-2 items-center">
-                <label>Include a 'Check' button?</label>
-                <Switch 
-                    checked={localRgbData.rgbShowMore} 
-                    onChange={
-                        (val) => setLocalRgbData({ ...localRgbData, rgbShowMore: val.target.checked })
-                    }
-                />
-            </div>
-            <div className="flex flex-wrap gap-2 items-center">
-                <label>Include an 'Ignore' button?</label>
-                <Switch 
-                    checked={localRgbData.rgbIgnore} 
-                    onChange={
-                        (val) => setLocalRgbData({ ...localRgbData, rgbIgnore: val.target.checked })
-                    }
-                />
+            <div className={localRgbData.enabled ? "" : "hidden"}>
+                <label>RGB Name:</label>
+                <input 
+                    className={sharedInputClasses}
+                    placeholder="RGB name"
+                    onChange={handleChange}
+                    name="name"
+                    value={localRgbData.name}
+                    />
+                <h3 className="text-lg font-bold">
+                    Embed Information:
+                </h3>
+                <label>Title:</label>
+                <input
+                    className={sharedInputClasses}
+                    placeholder="RGB title"
+                    onChange={handleChange}
+                    name="title"
+                    value={localRgbData.title}
+                    />
+                <label>Description:</label>
+                <input
+                    className={sharedInputClasses}
+                    placeholder="RGB description"
+                    onChange={handleChange}
+                    name="description"
+                    value={localRgbData.description}
+                    />
+                <label>Color:</label>
+                <input
+                    className={sharedInputClasses}
+                    placeholder="Accent color for watchlist"
+                    onChange={handleChange}
+                    name="color"
+                    type="number"
+                    value={localRgbData.color}
+                    />
+                <div className="flex flex-wrap gap-2 items-center">
+                    <label>Include a 'Check' button?</label>
+                    <Switch 
+                        checked={localRgbData.rgbShowMore} 
+                        onChange={
+                            (val) => {
+                            setLocalDataChanged(true);
+                            setLocalRgbData({ ...localRgbData, rgbShowMore: val.target.checked })
+                        }}
+                    />
+                </div>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <label>Include an 'Ignore' button?</label>
+                    <Switch 
+                        checked={localRgbData.rgbIgnore} 
+                        onChange={
+                            (val) => {
+                            setLocalRgbData({ ...localRgbData, rgbIgnore: val.target.checked })
+                            setLocalDataChanged(true);
+                        }}
+                    />
+                </div>
             </div>
         </div>
     );
