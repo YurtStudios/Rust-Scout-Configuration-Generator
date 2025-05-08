@@ -70,6 +70,7 @@ export default function Home() {
     const [rgbState, setRgbState] = useState<RgbData>();
     const [parsedJson, setParsedJson] = useState("");
     const [jsonVisible, setJsonVisible] = useState(false);
+    const [jsonPretty, setJsonPretty] = useState(false);
     useEffect(() => {
         dispatch({
             type: "set",
@@ -90,7 +91,7 @@ export default function Home() {
                 <button 
                     className="border rounded-md p-2 text-2xl"
                     onClick={() => {
-                        let jsonStr = JSON.stringify(generateOutput(watchlist, alertsState, rgbState))
+                        let jsonStr = JSON.stringify(generateOutput(watchlist, alertsState, rgbState), null, jsonPretty ? 2 : 0)
                         if (jsonStr) {
                             setJsonVisible(true);
                             setParsedJson(jsonStr);
@@ -127,10 +128,15 @@ export default function Home() {
             </div>
         </div>
         <div className={ jsonVisible ? "absolute inset-0 flex backdrop-blur-md items-center justify-center" : "hidden"} style={{ backgroundColor: "rgba(0,0,0,0.25)"}}>
-            <div className="border rounded-md w-8/12 h-8/12 dark:bg-neutral-900">
-                <div className="flex flex-row justify-between dark:bg-neutral-800 p-2 rounded-t-md">
+            <div className="border rounded-md w-8/12 h-8/12 dark:bg-neutral-900 flex flex-col">
+                <div className="flex flex-row justify-between dark:bg-neutral-800 p-2 rounded-t-md shrink-0">
                     <h2 className="text-2xl">JSON Output</h2>
                     <div className="flex">
+                        <Switch value={jsonPretty} onChange={(val) => {
+                            setJsonPretty(val.target.checked);
+                            let jsonStr = JSON.stringify(generateOutput(watchlist, alertsState, rgbState), null, jsonPretty ? 2 : 0)
+                            if (jsonStr) setParsedJson(jsonStr)
+                        }} />
                         <Button>Download</Button>
                         <Button>Copy</Button>
                         <Button onClick={() => {
@@ -138,9 +144,9 @@ export default function Home() {
                         }}>Close</Button>
                     </div>
                 </div>
-                <div>
+                <pre className="text-wrap overflow-y-auto w-full grow">
                     {parsedJson}
-                </div>
+                </pre>
             </div>
         </div>
     </ThemeProvider>
