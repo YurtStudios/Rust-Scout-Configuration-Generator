@@ -29,6 +29,7 @@ type AlertStateTask = {
     alertsData: Array<AlertData>
 }
 
+
 function alertStateReducer(alertsState: Array<AlertData>, action: AlertStateTask) {
     let newAlertsState: Array<AlertData>;
     switch (action.type) {
@@ -64,13 +65,13 @@ function alertStateReducer(alertsState: Array<AlertData>, action: AlertStateTask
 
 export default function Home() {
     const [display, setDisplay] = useState("alerts");
-
     const [watchlist, setWatchlist] = useState<WatchlistData>();
     const [alertsState, dispatch] = useReducer(alertStateReducer, new Array<AlertData>());
     const [rgbState, setRgbState] = useState<RgbData>();
     const [parsedJson, setParsedJson] = useState("");
     const [jsonVisible, setJsonVisible] = useState(false);
     const [jsonPretty, setJsonPretty] = useState(false);
+
     useEffect(() => {
         dispatch({
             type: "set",
@@ -83,7 +84,6 @@ export default function Home() {
         if (tempJsonStr) return JSON.parse(tempJsonStr);
         return [];
     }
-
 
     return <ThemeProvider theme={theme}>
         <div className="h-9/12 flex flex-col dark:border-white border-black ">
@@ -138,7 +138,9 @@ export default function Home() {
                             if (jsonStr) setParsedJson(jsonStr)
                         }} />
                         <Button>Download</Button>
-                        <Button>Copy</Button>
+                        <Button onClick={() => {
+                                navigator.clipboard.writeText(parsedJson);
+                        }}>Copy</Button>
                         <Button onClick={() => {
                             setJsonVisible(false)
                         }}>Close</Button>
